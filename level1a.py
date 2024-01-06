@@ -1,56 +1,56 @@
 import json
 
-file_path = "C:\\21pw37\\Input data\\level0.json"
+file_path = "C:\\21pw37\\Input data\\level1a.json"
 
 with open(file_path, 'r') as json_file:
     data = json.load(json_file)
 
 
-def nearest_neighbor_with_capacity(data, capacity):
-    neighborhoods = data["neighbourhoods"]
-    depot = "n0"  # Assuming the starting point is n0
-
-    unvisited = set(neighborhoods.keys())
-    unvisited.remove(depot)
-    routes = []
+def nearest_neighbor_with_capacity(neighbourhoods, distances_list, capacities, vehicle_capacity):
+    unvisited = set(neighbourhoods)
+    current = neighbourhoods[0]
+    unvisited.remove(current)
+    tour = [current]
+    current_capacity = 0
+    num_routes = 1
 
     while unvisited:
-        current = depot
-        route = [current]
-        remaining_capacity = capacity
+        next_neigh = min(
+            unvisited,
+            key=lambda city: distances_list[neighbourhoods.index(current)][neighbourhoods.index(city)]
+        )
+        
+        # Check if adding the next neighborhood exceeds the vehicle capacity
+        next_neigh_capacity = capacities[neighbourhoods.index(next_neigh)]
+        if current_capacity + next_neigh_capacity <= vehicle_capacity:
+            tour.append(next_neigh)
+            unvisited.remove(next_neigh)
+            current_capacity += next_neigh_capacity
+        else:
+            # Start a new route if adding the next neighborhood exceeds capacity
+            tour.append(neighbourhoods[0])  # Return to the starting point
+            tour.append(next_neigh)
+            unvisited.remove(next_neigh)
+            current_capacity = next_neigh_capacity
+            num_routes += 1
 
-        while remaining_capacity > 0:
-            next_neigh = find_nearest_neighbor(current, unvisited, neighborhoods)
-            if next_neigh is None:
-                break
+        current = next_neigh
 
-            order_quantity_str = neighborhoods[next_neigh]["order_quantity"]
-            if order_quantity_str.lower() == 'inf':
-                order_quantity = float('inf')  # or any other suitable representation for infinity
-            else:
-                order_quantity = int(order_quantity_str)
+    return tour, num_routes
 
+neighborhoods = list(data["neighbourhoods"].keys())
+distances_list = []
+order_quantities = []
 
-            if order_quantity <= remaining_capacity:
-                route.append(next_neigh)
-                remaining_capacity -= order_quantity
-                unvisited.remove(next_neigh)
-            else:
-                break
+for n in neighborhoods:
+    distances_list.append(data["neighbourhoods"][n]["distances"])
+    order_quantities.append(data["neighbourhoods"][n]["order_quantity"])
 
-        route.append(depot)  # Return to the starting point
-        routes.append(route)
+vehicles_data = data.get("vehicles", {})
+vehicle_key = list(vehicles_data.keys())[0] if vehicles_data else None
+vehicle = vehicles_data.get(vehicle_key, {})
+vehicle_capacity = vehicle.get("capacity", None)
 
-    return routes
-
-def find_nearest_neighbor(current, unvisited, neighborhoods):
-    distances = neighborhoods[current]["distances"]
-    nearest_neighbor = min(unvisited, key=lambda neigh: distances[list(neighborhoods.keys()).index(neigh)])
-    return nearest_neighbor
-
-
-vehicle_capacity = 600
-
-result_routes = nearest_neighbor_with_capacity(data, vehicle_capacity)
-
-print("Number of trips:", len(result_routes))
+tour, num_routes = nearest_neighbor_with_capacity(neighborhoods, distances_list, order_quantities, vehicle_capacity)
+print("Optimized Tour:", tour)
+print("Number of Routes:", num_routes)
