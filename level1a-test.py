@@ -40,11 +40,11 @@ def nearest_neighbor_with_capacity(neighbourhoods, distances_list, capacities, v
         current = next_neigh
 
     # Add the last route
-    num_routes += 1
     tour.append("r0")
     routes[f"path{num_routes}"] = tour
 
     return routes
+
 
 neighborhoods = list(data["neighbourhoods"].keys())
 distances_list = []
